@@ -1,0 +1,647 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AIセリフ練習パートナー (先頭ロスト対策版)</title>
+    <!-- PDF.js の安定版ライブラリ -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
+    <style>
+        :root {
+            --primary-color: #3182ce;
+            --success-color: #38a169;
+            --danger-color: #e53e3e;
+            --warning-color: #dd6b20;
+            --bg-color: #f7fafc;
+            --card-bg: #ffffff;
+            --text-main: #2d3748;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            margin: 0;
+            padding: 15px;
+            display: flex;
+            justify-content: center;
+        }
+
+        .app-container {
+            width: 100%;
+            max-width: 700px;
+            background: var(--card-bg);
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05), 0 1px 3px rgba(0, 0, 0, 0.1);
+            box-sizing: border-box;
+        }
+
+        h1 {
+            text-align: center;
+            font-size: 20px;
+            color: var(--primary-color);
+            margin-top: 0;
+            margin-bottom: 20px;
+        }
+
+        .config-panel {
+            background: #edf2f7;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+
+        .form-group {
+            margin-bottom: 12px;
+        }
+
+        label {
+            display: block;
+            font-weight: bold;
+            font-size: 14px;
+            margin-bottom: 4px;
+        }
+
+        input[type="text"], input[type="file"], textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #cbd5e0;
+            border-radius: 6px;
+            background: #fff;
+            box-sizing: border-box;
+            font-size: 14px;
+        }
+
+        input[type="file"] {
+            padding: 6px 10px;
+            cursor: pointer;
+        }
+
+        textarea {
+            height: 140px;
+            resize: vertical;
+            font-family: inherit;
+        }
+
+        .or-divider {
+            text-align: center;
+            margin: 10px 0;
+            font-size: 12px;
+            color: #718096;
+            font-weight: bold;
+            position: relative;
+        }
+        .or-divider::before, .or-divider::after {
+            content: "";
+            position: absolute;
+            top: 50%;
+            width: 42%;
+            height: 1px;
+            background: #cbd5e0;
+        }
+        .or-divider::before { left: 0; }
+        .or-divider::after { right: 0; }
+
+        .slider-container {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .slider-container input[type="range"] {
+            flex: 1;
+        }
+
+        .control-panel {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            justify-content: center;
+            margin-bottom: 20px;
+        }
+
+        button {
+            padding: 12px 16px;
+            font-size: 15px;
+            font-weight: bold;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: background 0.1s;
+            flex: 1;
+            min-width: 100px;
+            color: white;
+        }
+
+        .btn-start { background-color: var(--success-color); }
+        .btn-stop { background-color: var(--danger-color); }
+        .btn-reset { background-color: #718096; }
+        .btn-prev { background-color: #4a5568; }
+        .btn-skip { background-color: var(--warning-color); }
+
+        button:hover { opacity: 0.9; }
+        button:disabled { background-color: #cbd5e0; cursor: not-allowed; opacity: 0.7; }
+
+        .status-banner {
+            text-align: center;
+            font-weight: bold;
+            padding: 10px;
+            border-radius: 6px;
+            margin-bottom: 15px;
+            font-size: 14px;
+            display: none;
+        }
+        .status-ai { background-color: #ebf8ff; color: #2b6cb0; border: 1px solid #bee3f8; }
+        .status-user { background-color: #f0fff4; color: #276749; border: 1px solid #c6f6d5; animation: blink 1.5s infinite; }
+
+        @keyframes blink {
+            0% { opacity: 0.7; }
+            50% { opacity: 1; }
+            100% { opacity: 0.7; }
+        }
+
+        .display-area {
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 15px;
+        }
+
+        .current-box {
+            background: #f7fafc;
+            padding: 15px;
+            border-radius: 6px;
+            border-left: 5px solid var(--primary-color);
+            margin-bottom: 15px;
+        }
+
+        .speaker-name {
+            font-weight: bold;
+            font-size: 15px;
+            color: #1a202c;
+            margin-bottom: 6px;
+        }
+
+        .dialogue-text {
+            font-size: 14px;
+            line-height: 1.6;
+            word-break: break-all;
+            white-space: pre-wrap;
+        }
+
+        .preview-box {
+            border-top: 1px dashed #e2e8f0;
+            padding-top: 12px;
+        }
+
+        .preview-title {
+            font-size: 11px;
+            color: #a0aec0;
+            margin-bottom: 6px;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+
+        .preview-item {
+            font-size: 13px;
+            color: #718096;
+            margin-bottom: 4px;
+            word-break: break-all;
+            opacity: 0.6;
+        }
+
+        .last-line-alert {
+            color: var(--danger-color);
+            font-weight: bold;
+            font-size: 13px;
+            margin-top: 5px;
+        }
+
+        #logInfo {
+            font-size: 13px;
+            color: #2d3748;
+            background-color: #e2e8f0;
+            padding: 12px;
+            border-radius: 6px;
+            text-align: center;
+            margin-top: 12px;
+            font-weight: bold;
+            line-height: 1.4;
+        }
+    </style>
+</head>
+<body>
+
+<div class="app-container">
+    <h1>AIセリフ練習パートナー</h1>
+
+    <div class="config-panel">
+        <div class="form-group">
+            <label for="myRole">自分の役名（登場人物名）:</label>
+            <input type="text" id="myRole" placeholder="例: 太郎">
+        </div>
+        
+        <div class="form-group">
+            <label for="pdfFile">方法1：台本ファイルを選択 (PDF または テキストファイル):</label>
+            <input type="file" id="pdfFile" accept=".pdf,.txt">
+        </div>
+
+        <div class="or-divider">または</div>
+
+        <div class="form-group">
+            <label for="manualText">方法2：台本テキストを直接貼り付け（編集も可能）:</label>
+            <textarea id="manualText" placeholder="PDFの文字がズレる場合は、ここにテキストを直接コピペして修正できます。"></textarea>
+        </div>
+
+        <div class="form-group">
+            <label for="speedSlider">AI読み上げ速度: <span id="speedLabel">1.00</span>倍速</label>
+            <div class="slider-container">
+                <input type="range" id="speedSlider" min="0.1" max="2.0" step="0.01" value="1.0">
+            </div>
+        </div>
+    </div>
+
+    <!-- コントロールボタン -->
+    <div class="control-panel">
+        <button id="btnStart" class="btn-start" disabled>開始</button>
+        <button id="btnStop" class="btn-stop" disabled>停止</button>
+        <button id="btnReset" class="btn-reset">終了(最初から)</button>
+        <button id="btnPrev" class="btn-prev" disabled>戻る</button>
+        <button id="btnSkip" class="btn-skip" disabled>スキップ</button>
+    </div>
+
+    <div id="statusBanner" class="status-banner">状態</div>
+
+    <div class="display-area">
+        <div class="current-box">
+            <div id="currentSpeaker" class="speaker-name">役名: ---</div>
+            <div id="currentDialogue" class="dialogue-text">台本を読み込んで、「開始」を押してください。</div>
+        </div>
+        
+        <div class="preview-box">
+            <div class="preview-title">この後の台本（3つ先まで）</div>
+            <div id="previewContainer"></div>
+        </div>
+    </div>
+    
+    <div id="logInfo">【待機中】台本ファイルを選択するか、テキストを貼り付けてください。</div>
+</div>
+
+<script>
+    let pdfjsLib = window['pdfjs-dist/build/pdf'];
+    if (pdfjsLib) {
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js';
+    }
+
+    let scriptLines = [];       
+    let currentIndex = -1;      
+    let isRunning = false;      
+    let recognitionInstance = null; 
+    let maleVoice = null;       
+
+    const myRoleInput = document.getElementById('myRole');
+    const pdfFileInput = document.getElementById('pdfFile');
+    const manualTextInput = document.getElementById('manualText');
+    const speedSlider = document.getElementById('speedSlider');
+    const speedLabel = document.getElementById('speedLabel');
+    const logInfo = document.getElementById('logInfo');
+
+    const btnStart = document.getElementById('btnStart');
+    const btnStop = document.getElementById('btnStop');
+    const btnReset = document.getElementById('btnReset');
+    const btnPrev = document.getElementById('btnPrev');
+    const btnSkip = document.getElementById('btnSkip');
+
+    const statusBanner = document.getElementById('statusBanner');
+    const currentSpeaker = document.getElementById('currentSpeaker');
+    const currentDialogue = document.getElementById('currentDialogue');
+    const previewContainer = document.getElementById('previewContainer');
+
+    speedSlider.addEventListener('input', (e) => {
+        speedLabel.textContent = parseFloat(e.target.value).toFixed(2);
+    });
+
+    manualTextInput.addEventListener('input', () => {
+        parseScriptText(manualTextInput.value, "手動入力入力");
+    });
+
+    // 📂 ファイル選択時の処理（PDFの抽出処理を劇的強化）
+    pdfFileInput.addEventListener('change', async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        logInfo.style.backgroundColor = "#e2e8f0";
+        logInfo.style.color = "#2d3748";
+        logInfo.textContent = "⏳ 台本の全セリフを解析中。しばらくお待ちください...";
+        scriptLines = [];
+        manualTextInput.value = "";
+
+        if (file.type === "text/plain" || file.name.endsWith('.txt')) {
+            const reader = new FileReader();
+            reader.onload = function(event) {
+                const text = event.target.result;
+                manualTextInput.value = text;
+                parseScriptText(text, "テキストファイル");
+            };
+            reader.readAsText(file, 'UTF-8');
+            return;
+        }
+
+        try {
+            if (!pdfjsLib) {
+                throw new Error("PDFライブラリの準備が遅れています。もう一度選択し直してください。");
+            }
+
+            const fileReader = new FileReader();
+            fileReader.onload = async function() {
+                try {
+                    const typedarray = new Uint8Array(this.result);
+                    const loadingTask = pdfjsLib.getDocument({data: typedarray});
+                    const pdf = await loadingTask.promise;
+                    let fullText = "";
+
+                    // 全てのページを限界まで細かく分解してテキスト化
+                    for (let i = 1; i <= pdf.numPages; i++) {
+                        const page = await pdf.getPage(i);
+                        const textContent = await page.getTextContent();
+                        
+                        // PDFのデータ構造バグ（途中でブチブチ切れる現象）を防ぐため、
+                        // アイテム同士を綺麗に結合して改行を補正
+                        let lastY = -1;
+                        let pageText = "";
+                        
+                        for (let item of textContent.items) {
+                            if (lastY !== -1 && Math.abs(item.transform[5] - lastY) > 5) {
+                                pageText += "\n"; // 高さが大きく変わったら改行とみなす
+                            }
+                            pageText += item.str;
+                            lastY = item.transform[5];
+                        }
+                        fullText += pageText + "\n";
+                    }
+
+                    if (!fullText.trim()) {
+                        throw new Error("PDF内部の文字データが空、またはスキャン画像です。");
+                    }
+
+                    manualTextInput.value = fullText; // 解析文字をテキストエリアに出力
+                    parseScriptText(fullText, "PDFファイル");
+
+                } catch (innerError) {
+                    showError(`PDF読み込みエラー: ${innerError.message}`);
+                }
+            };
+            fileReader.readAsArrayBuffer(file);
+        } catch (error) {
+            showError(error.message);
+        }
+    });
+
+    function showError(msg) {
+        logInfo.style.backgroundColor = "#fff5f5";
+        logInfo.style.color = "#c53030";
+        logInfo.innerHTML = `❌ ${msg}<br><span style="font-size:11px; font-weight:normal;">※解決しない場合、PDFのテキストをコピーして下の枠に直接貼り付けてください。</span>`;
+        btnStart.disabled = true;
+    }
+
+    // 🎯【最強パース版】行のどの位置に「」があっても1件目から逃さず引き抜くロジック
+    function parseScriptText(text, sourceType) {
+        scriptLines = [];
+        
+        // 縦書き・横書きPDFの改行バグ対策：変な場所で改行されてバラバラになった文字を一時的に調整
+        // 改行や怪しいスペースで細かく配列化
+        const rawLines = text.split(/[\n\r]+/);
+        
+        rawLines.forEach(line => {
+            const sLine = line.trim();
+            if (!sLine) return;
+
+            // 🔍 カギカッコ「」または『』が含まれているか行全体を検査
+            // 行の先頭でなくても、どこかに「」があればヒットさせる
+            const regex = /([^「『\n\r]*)[「『]([^」』]+)[」』]/;
+            const match = sLine.match(regex);
+
+            if (match) {
+                // カギカッコの左側を全て「役名候補」にする
+                let roleName = match[1].trim();
+                const dialogueText = match[2].trim();
+
+                // 役名に含まれがちなゴミ（スペース、コロン、ト書きの残り、ページ番号など）を徹底消去
+                roleName = roleName.replace(/[ 　\t：:、,○●\d・\-\/]/g, "");
+
+                // 直前の文字が長すぎるト書きだった場合を考慮し、右側の末尾（直近の文字）を役名として採用
+                // 例：「舞台は暗転。 太郎「〜」」 → 太郎
+                if (roleName.length > 10) {
+                    // 末尾の2〜4文字を適宜切り取る安全弁（通常は2〜3文字の名前が多い）
+                    roleName = roleName.slice(-3);
+                }
+
+                // 役名とセリフがどちらも存在すれば1行目から格納
+                if (roleName && dialogueText) {
+                    scriptLines.push({
+                        role: roleName,
+                        dialogue: dialogueText
+                    });
+                }
+            }
+        });
+
+        // 解析完了後の画面反映
+        if (scriptLines.length > 0) {
+            logInfo.style.backgroundColor = "#f0fff4";
+            logInfo.style.color = "#276749";
+            logInfo.textContent = `【成功】${sourceType}から【最初の1行目を含む】計 ${scriptLines.length} 件のセリフをすべて取り込みました！`;
+            btnStart.disabled = false;
+            resetPractice();
+        } else {
+            logInfo.style.backgroundColor = "#fff5f5";
+            logInfo.style.color = "#c53030";
+            logInfo.textContent = `⚠️ 文字の抽出はできましたが、「役名「セリフ」」の形として認識できる行がありませんでした。下の枠内のテキストの形を確認してください。`;
+            btnStart.disabled = true;
+        }
+    }
+
+    // 音声認識の設定
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (SpeechRecognition) {
+        recognitionInstance = new SpeechRecognition();
+        recognitionInstance.lang = 'ja-JP';
+        recognitionInstance.interimResults = false;
+        recognitionInstance.continuous = false;
+
+        recognitionInstance.onresult = (event) => {
+            if (isRunning && checkUserTurn()) {
+                recognitionInstance.stop();
+                stepNext();
+            }
+        };
+
+        recognitionInstance.onend = () => {
+            if (isRunning && checkUserTurn()) {
+                try { recognitionInstance.start(); } catch(e) {}
+            }
+        };
+    }
+
+    // 音声合成の設定
+    function initVoices() {
+        const voices = window.speechSynthesis.getVoices();
+        let voice = voices.find(v => v.lang === 'ja-JP' && (v.name.includes('Google') || v.name.includes('Ichiro') || v.name.includes('Male')));
+        if (!voice) {
+            voice = voices.find(v => v.lang === 'ja-JP');
+        }
+        maleVoice = voice;
+    }
+    window.speechSynthesis.onvoiceschanged = initVoices;
+    initVoices();
+
+    function checkUserTurn() {
+        if (currentIndex < 0 || currentIndex >= scriptLines.length) return false;
+        const myRole = myRoleInput.value.trim();
+        return scriptLines[currentIndex].role === myRole;
+    }
+
+    function updateButtonStates() {
+        btnStart.disabled = isRunning || scriptLines.length === 0;
+        btnStop.disabled = !isRunning;
+        btnPrev.disabled = currentIndex <= 0;
+        btnSkip.disabled = currentIndex >= scriptLines.length - 1 && currentIndex !== -1;
+    }
+
+    function updateDisplay() {
+        if (currentIndex < 0 || currentIndex >= scriptLines.length) {
+            currentSpeaker.textContent = "役名: ---";
+            currentDialogue.textContent = "台本を読み込んで、「開始」を押してください。";
+            previewContainer.innerHTML = "";
+            return;
+        }
+
+        const current = scriptLines[currentIndex];
+        currentSpeaker.textContent = `役名: ${current.role}`;
+        currentDialogue.textContent = current.dialogue;
+
+        previewContainer.innerHTML = "";
+        let previewCount = 0;
+        for (let i = currentIndex + 1; i < scriptLines.length; i++) {
+            if (previewCount >= 3) break;
+            const pDiv = document.createElement('div');
+            pDiv.className = 'preview-item';
+            pDiv.textContent = `${scriptLines[i].role}: ${scriptLines[i].dialogue}`;
+            previewContainer.appendChild(pDiv);
+            previewCount++;
+        }
+
+        if (currentIndex === scriptLines.length - 1) {
+            const lastAlert = document.createElement('div');
+            lastAlert.className = 'last-line-alert';
+            lastAlert.textContent = "最後のセリフです";
+            previewContainer.appendChild(lastAlert);
+        }
+    }
+
+    function runDialogueTurn() {
+        if (!isRunning) return;
+
+        window.speechSynthesis.cancel();
+        if (recognitionInstance) {
+            try { recognitionInstance.stop(); } catch(e) {}
+        }
+
+        updateDisplay();
+        updateButtonStates();
+
+        if (checkUserTurn()) {
+            statusBanner.style.display = "block";
+            statusBanner.className = "status-banner status-user";
+            statusBanner.textContent = "【あなたの番】セリフを発話してください（音声認識中...）";
+
+            if (recognitionInstance) {
+                try { recognitionInstance.start(); } catch(e) {}
+            }
+        } else {
+            statusBanner.style.display = "block";
+            statusBanner.className = "status-banner status-ai";
+            statusBanner.textContent = "【相手の番】AIが読み上げています...";
+
+            let speechText = scriptLines[currentIndex].dialogue;
+            speechText = speechText.replace(/([\u4e00-\u9faf]{3,})/g, "$1、");
+
+            const utterance = new SpeechSynthesisUtterance(speechText);
+            if (maleVoice) utterance.voice = maleVoice;
+            utterance.rate = parseFloat(speedSlider.value);
+            utterance.pitch = 0.9; 
+
+            utterance.onend = () => {
+                if (isRunning) stepNext();
+            };
+            utterance.onerror = () => {
+                if (isRunning) stepNext();
+            };
+
+            window.speechSynthesis.speak(utterance);
+        }
+    }
+
+    function stepNext() {
+        if (currentIndex < scriptLines.length - 1) {
+            currentIndex++;
+            runDialogueTurn();
+        } else {
+            stopPractice();
+            currentSpeaker.textContent = "終了";
+            currentDialogue.textContent = "すべての練習パートが終了しました。お疲れ様でした！";
+            statusBanner.style.display = "none";
+        }
+    }
+
+    function stopPractice() {
+        isRunning = false;
+        window.speechSynthesis.cancel();
+        if (recognitionInstance) {
+            try { recognitionInstance.stop(); } catch(e) {}
+        }
+        statusBanner.style.display = "none";
+        updateButtonStates();
+    }
+
+    function resetPractice() {
+        stopPractice();
+        currentIndex = -1;
+        updateDisplay();
+        updateButtonStates();
+    }
+
+    btnStart.addEventListener('click', () => {
+        if (scriptLines.length === 0) return;
+        if (myRoleInput.value.trim() === "") {
+            alert("自分の役名を入力して登録してください。");
+            return;
+        }
+        isRunning = true;
+        if (currentIndex === -1) {
+            currentIndex = 0;
+        }
+        runDialogueTurn();
+    });
+
+    btnStop.addEventListener('click', () => { stopPractice(); });
+    btnReset.addEventListener('click', () => { resetPractice(); });
+
+    btnPrev.addEventListener('click', () => {
+        if (currentIndex > 0) {
+            currentIndex--;
+            if (isRunning) { runDialogueTurn(); } 
+            else { updateDisplay(); updateButtonStates(); }
+        }
+    });
+
+    btnSkip.addEventListener('click', () => {
+        if (currentIndex < scriptLines.length - 1 && currentIndex !== -1) {
+            if (isRunning) { stepNext(); } 
+            else { currentIndex++; updateDisplay(); updateButtonStates(); }
+        }
+    });
+</script>
+
+</body>
+</html>

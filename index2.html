@@ -1,0 +1,507 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AIセリフ練習パートナー</title>
+    <style>
+        :root {
+            --primary-color: #4a90e2;
+            --secondary-color: #f5a623;
+            --bg-color: #f4f7f6;
+            --text-color: #333;
+        }
+
+        body {
+            font-family: 'Helvetica Neue', Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 800px;
+            background: #fff;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+
+        h1 {
+            text-align: center;
+            color: var(--primary-color);
+            margin-bottom: 25px;
+        }
+
+        .setup-section {
+            background: #f9f9f9;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 25px;
+            border: 1px solid #eef2f5;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-group label {
+            display: block;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        input[type="text"], textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+            box-sizing: border-box;
+            font-size: 14px;
+        }
+
+        textarea {
+            height: 120px;
+            resize: vertical;
+        }
+
+        .slider-group {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .slider-group input[type="range"] {
+            flex: 1;
+        }
+
+        .controls {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-bottom: 25px;
+            flex-wrap: wrap;
+        }
+
+        button {
+            padding: 12px 24px;
+            font-size: 16px;
+            font-weight: bold;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .btn-start { background-color: #2ecc71; color: white; }
+        .btn-stop { background-color: #e74c3c; color: white; }
+        .btn-reset { background-color: #95a5a6; color: white; }
+        .btn-prev { background-color: #34495e; color: white; }
+        .btn-skip { background-color: var(--secondary-color); color: white; }
+
+        button:hover { opacity: 0.9; }
+        button:disabled { background-color: #bdc3c7; cursor: not-allowed; }
+
+        .status-badge {
+            text-align: center;
+            font-weight: bold;
+            padding: 8px;
+            border-radius: 4px;
+            margin-bottom: 20px;
+            display: none;
+        }
+        .status-ai { background-color: #d1ecf1; color: #0c5460; }
+        .status-user { background-color: #d4edda; color: #155724; animation: pulse 1.5s infinite; }
+
+        @keyframes pulse {
+            0% { opacity: 0.6; }
+            50% { opacity: 1; }
+            100% { opacity: 0.6; }
+        }
+
+        .display-section {
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 20px;
+            background: #fff;
+        }
+
+        .current-box {
+            background: #edf2f7;
+            padding: 20px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+            border-left: 5px solid var(--primary-color);
+        }
+
+        .role-name {
+            font-weight: bold;
+            font-size: 16px;
+            color: #2d3748;
+            margin-bottom: 5px;
+        }
+
+        .line-text {
+            font-size: 14px;
+            line-height: 1.6;
+            word-break: break-all;
+            white-space: pre-wrap;
+        }
+
+        .preview-box {
+            border-top: 1px dashed #cbd5e0;
+            padding-top: 15px;
+        }
+
+        .preview-title {
+            font-size: 12px;
+            color: #718096;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .preview-item {
+            font-size: 13px;
+            color: #a0aec0;
+            margin-bottom: 6px;
+            word-break: break-all;
+        }
+        
+        .system-msg {
+            color: #e53e3e;
+            font-weight: bold;
+            font-size: 13px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>AIセリフ練習パートナー</h1>
+
+    <!-- 設定エリア -->
+    <div class="setup-section">
+        <div class="form-group">
+            <label for="myRole">自分の役名（登場人物名）:</label>
+            <input type="text" id="myRole" placeholder="例: 太郎">
+        </div>
+        <div class="form-group">
+            <label for="scriptInput">台本テキスト入力（PDF等から貼り付けてください）:</label>
+            <textarea id="scriptInput" placeholder="例：&#10;太郎「こんにちは」&#10;花子「良い天気ですね」"></textarea>
+        </div>
+        <div class="form-group">
+            <label for="speedSlider">AIの読み上げ速度: <span id="speedVal">1.00</span>倍速</label>
+            <div class="slider-group">
+                <input type="range" id="speedSlider" min="0.1" max="2.0" step="0.01" value="1.0">
+            </div>
+        </div>
+    </div>
+
+    <!-- コントロールボタン -->
+    <div class="controls">
+        <button id="btnStart" class="btn-start">開始</button>
+        <button id="btnStop" class="btn-stop" disabled>停止</button>
+        <button id="btnReset" class="btn-reset">終了(最初から)</button>
+        <button id="btnPrev" class="btn-prev" disabled>戻る</button>
+        <button id="btnSkip" class="btn-skip" disabled>スキップ(次へ)</button>
+    </div>
+
+    <!-- ステータス表示 -->
+    <div id="statusBadge" class="status-badge">状態</div>
+
+    <!-- セリフ表示エリア -->
+    <div class="display-section">
+        <div class="current-box">
+            <div id="currentRole" class="role-name">役名: ---</div>
+            <div id="currentText" class="line-text">ここに現在のセリフが表示されます。</div>
+        </div>
+        <div class="preview-box">
+            <div class="preview-title">この後のセリフ（3つ先まで）</div>
+            <div id="previewLines"></div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // 状態管理
+    let lines = [];
+    let currentIndex = -1;
+    let isPlaying = false;
+    let recognition = null;
+    let selectedVoice = null;
+
+    // DOM要素の取得
+    const myRoleInput = document.getElementById('myRole');
+    const scriptInput = document.getElementById('scriptInput');
+    const speedSlider = document.getElementById('speedSlider');
+    const speedVal = document.getElementById('speedVal');
+    
+    const btnStart = document.getElementById('btnStart');
+    const btnStop = document.getElementById('btnStop');
+    const btnReset = document.getElementById('btnReset');
+    const btnPrev = document.getElementById('btnPrev');
+    const btnSkip = document.getElementById('btnSkip');
+
+    const statusBadge = document.getElementById('statusBadge');
+    const currentRole = document.getElementById('currentRole');
+    const currentText = document.getElementById('currentText');
+    const previewLines = document.getElementById('previewLines');
+
+    // スライダー連動
+    speedSlider.addEventListener('input', (e) => {
+        speedVal.textContent = parseFloat(e.target.value).toFixed(2);
+    });
+
+    // Web Speech API - 音声認識の初期化
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (SpeechRecognition) {
+        recognition = new SpeechRecognition();
+        recognition.lang = 'ja-JP';
+        recognition.interimResults = false;
+        recognition.continuous = false;
+
+        // ユーザーが何か声を発したことを検知したら次へ
+        recognition.onresult = (event) => {
+            if (isPlaying) {
+                recognition.stop();
+                nextTurn();
+            }
+        };
+
+        // エラーや無音終了時も自動で再帰再起動（ユーザーのターン中であれば）
+        recognition.onend = () => {
+            if (isPlaying && isUserTurn()) {
+                try { recognition.start(); } catch(e) {}
+            }
+        };
+    } else {
+        alert("お使いのブラウザは音声認識に対応していません。Google Chrome等をお使いください。");
+    }
+
+    // 男性の声を探してセットする関数
+    function loadVoices() {
+        const voices = window.speechSynthesis.getVoices();
+        // 日本語音声の中から男性っぽい名称を優先探索
+        let voice = voices.find(v => v.lang === 'ja-JP' && (v.name.includes('Google') || v.name.includes('Ichiro') || v.name.includes('Male')));
+        if (!voice) {
+            voice = voices.find(v => v.lang === 'ja-JP'); // 見つからなければ通常の日本語
+        }
+        selectedVoice = voice;
+    }
+    window.speechSynthesis.onvoiceschanged = loadVoices;
+    loadVoices();
+
+    // 台本の解析ルール
+    function parseScript() {
+        const text = scriptInput.value;
+        const rawLines = text.split('\n');
+        lines = [];
+
+        // カギカッコ（「」や『』）の正規表現
+        const regex = /([^「『\n]+)[「『]([^」』]+)[」』]/;
+
+        rawLines.forEach(line => {
+            const match = line.match(regex);
+            if (match) {
+                lines.push({
+                    role: match[1].trim(),
+                    text: match[2].trim()
+                });
+            }
+        });
+    }
+
+    // 判定：ユーザーのターンかどうか
+    function isUserTurn() {
+        if (currentIndex < 0 || currentIndex >= lines.length) return false;
+        const myRole = myRoleInput.value.trim();
+        return lines[currentIndex].role === myRole;
+    }
+
+    // 画面コントロール状態の更新
+    function updateControls() {
+        btnStart.disabled = isPlaying;
+        btnStop.disabled = !isPlaying;
+        btnPrev.disabled = currentIndex <= 0;
+        btnSkip.disabled = currentIndex >= lines.length - 1 && currentIndex !== -1;
+    }
+
+    // セリフ表示の更新処理
+    function updateDisplay() {
+        if (currentIndex < 0 || currentIndex >= lines.length) {
+            currentRole.textContent = "役名: ---";
+            currentText.textContent = "台本が読み込まれていないか、終了しました。";
+            previewLines.innerHTML = "";
+            return;
+        }
+
+        const current = lines[currentIndex];
+        currentRole.textContent = `役名: ${current.role}`;
+        currentText.textContent = current.text;
+
+        // 先読みエリア（3つ先まで）の処理
+        previewLines.innerHTML = "";
+        let previewCount = 0;
+        
+        for (let i = currentIndex + 1; i < lines.length; i++) {
+            if (previewCount >= 3) break;
+            const pDiv = document.createElement('div');
+            pDiv.className = 'preview-item';
+            pDiv.textContent = `${lines[i].role}: ${lines[i].text}`;
+            previewLines.appendChild(pDiv);
+            previewCount++;
+        }
+
+        if (currentIndex === lines.length - 1) {
+            const lastMsg = document.createElement('div');
+            lastMsg.className = 'system-msg';
+            lastMsg.textContent = "最後のセリフです";
+            previewLines.appendChild(lastMsg);
+        }
+    }
+
+    // 掛け合いのメイン挙動
+    function playTurn() {
+        if (!isPlaying) return;
+        
+        // 音声合成と認識のバッティングを防ぐため初期化
+        window.speechSynthesis.cancel();
+        if (recognition) try { recognition.stop(); } catch(e) {}
+
+        updateDisplay();
+        updateControls();
+
+        if (isUserTurn()) {
+            // ② 自分（ユーザー）のターン
+            statusBadge.style.display = "block";
+            statusBadge.className = "status-badge status-user";
+            statusBadge.textContent = "あなたの番です（声を出して発話するか、スキップを押してください）";
+
+            if (recognition) {
+                try { recognition.start(); } catch(e) {}
+            }
+        } else {
+            // ① 相手（AI）のターン
+            statusBadge.style.display = "block";
+            statusBadge.className = "status-badge status-ai";
+            statusBadge.textContent = "AIがセリフを読み上げています...";
+
+            // 人間らしく聴かせるクレンジング（漢字の連続を「、」で少し和らげるなど）
+            let speechText = lines[currentIndex].text;
+            speechText = speechText.replace(/([\u4e00-\u9faf]{3,})/g, "$1、"); // 3文字以上の漢字連続に『、』を挿入
+
+            const utterance = new SpeechSynthesisUtterance(speechText);
+            if (selectedVoice) utterance.voice = selectedVoice;
+            
+            // 速度スライダーの値を反映
+            utterance.rate = parseFloat(speedSlider.value);
+
+            // 喋り終わったら自動で次へ
+            utterance.onend = () => {
+                if (isPlaying) {
+                    nextTurn();
+                }
+            };
+            
+            utterance.onerror = () => {
+                if (isPlaying) nextTurn();
+            };
+
+            window.speechSynthesis.speak(utterance);
+        }
+    }
+
+    function nextTurn() {
+        if (currentIndex < lines.length - 1) {
+            currentIndex++;
+            playTurn();
+        } else {
+            // 全セリフ終了
+            stopPractice();
+            currentRole.textContent = "終了";
+            currentText.textContent = "すべてのセリフ練習が終了しました！";
+            statusBadge.style.display = "none";
+        }
+    }
+
+    function stopPractice() {
+        isPlaying = false;
+        window.speechSynthesis.cancel();
+        if (recognition) try { recognition.stop(); } catch(e) {}
+        statusBadge.style.display = "none";
+        updateControls();
+    }
+
+    // ボタン群のイベントリスナー
+    btnStart.addEventListener('click', () => {
+        if (lines.length === 0 || scriptInput.value.trim() === "") {
+            parseScript();
+        }
+        if (lines.length === 0) {
+            alert("台本を正しく解析できませんでした。フォーマット（例: 太郎「〜」）を確認してください。");
+            return;
+        }
+        if (myRoleInput.value.trim() === "") {
+            alert("自分の役名を入力してください。");
+            return;
+        }
+
+        isPlaying = true;
+        if (currentIndex === -1) {
+            currentIndex = 0; // 最初から開始
+        }
+        playTurn();
+    });
+
+    btnStop.addEventListener('click', () => {
+        stopPractice();
+    });
+
+    btnReset.addEventListener('click', () => {
+        stopPractice();
+        currentIndex = -1;
+        updateDisplay();
+        updateControls();
+    });
+
+    btnPrev.addEventListener('click', () => {
+        if (currentIndex > 0) {
+            currentIndex--;
+            if (isPlaying) {
+                playTurn();
+            } else {
+                updateDisplay();
+                updateControls();
+            }
+        }
+    });
+
+    btnSkip.addEventListener('click', () => {
+        if (currentIndex < lines.length - 1 && currentIndex !== -1) {
+            if (isPlaying) {
+                nextTurn();
+            } else {
+                currentIndex++;
+                updateDisplay();
+                updateControls();
+            }
+        }
+    });
+
+    // 台本テキストが書き換えられたらリセット
+    scriptInput.addEventListener('input', () => {
+        stopPractice();
+        lines = [];
+        currentIndex = -1;
+        updateDisplay();
+        updateControls();
+    });
+</script>
+
+</body>
+</html>
